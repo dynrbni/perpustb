@@ -87,6 +87,14 @@ const PeminjamanPage: React.FC<PeminjamanPageProps> = ({ isAdmin = false }) => {
     }
   };
 
+  // ✅ CALCULATE DENDA REAL-TIME
+  const calculateDenda = (borrow: BorrowHistory) => {
+    const hariTerlambat = borrow.hari_terlambat || 0;
+    const dendaDB = borrow.denda || 0;
+    const dendaCalculated = hariTerlambat * 1000;
+    return dendaDB > 0 ? dendaDB : dendaCalculated;
+  };
+
   const pendingBorrows = history.filter((h) => h.status === 'menunggu');
   const activeBorrows = history.filter((h) => h.status === 'dipinjam');
   const completedBorrows = history.filter((h) => h.status === 'dikembalikan');
@@ -249,14 +257,19 @@ const PeminjamanPage: React.FC<PeminjamanPageProps> = ({ isAdmin = false }) => {
   };
 
   const handleReturn = async (borrowId: number) => {
+    const borrow = history.find(b => b.id === borrowId);
+    const dendaFinal = borrow ? calculateDenda(borrow) : 0;
+
     const result = await Swal.fire({
       title: 'Kembalikan Buku?',
-      text: 'Buku akan dicatat sebagai sudah dikembalikan',
+      html: dendaFinal > 0 
+        ? `Buku akan dicatat sebagai sudah dikembalikan<br><br><strong class="text-red-600">Denda: Rp ${dendaFinal.toLocaleString('id-ID')}</strong>`
+        : 'Buku akan dicatat sebagai sudah dikembalikan',
       icon: 'question',
       showCancelButton: true,
       confirmButtonColor: '#10b981',
       cancelButtonColor: '#6b7280',
-      confirmButtonText: 'Ya, Kembalikan!',
+      confirmButtonText: dendaFinal > 0 ? 'Ya, Kembalikan & Bayar Denda!' : 'Ya, Kembalikan!',
       cancelButtonText: 'Batal'
     });
 
@@ -277,7 +290,9 @@ const PeminjamanPage: React.FC<PeminjamanPageProps> = ({ isAdmin = false }) => {
 
     toast.promise(returnPromise, {
       loading: 'Memproses pengembalian...',
-      success: 'Pengembalian Buku Berhasil!',
+      success: (data) => dendaFinal > 0 
+        ? `Buku dikembalikan! Denda Rp ${dendaFinal.toLocaleString('id-ID')} telah dicatat`
+        : 'Buku berhasil dikembalikan!',
       error: (err) => err.message || 'Gagal mengembalikan buku'
     });
   };
@@ -296,6 +311,7 @@ const PeminjamanPage: React.FC<PeminjamanPageProps> = ({ isAdmin = false }) => {
   return (
     <div className="space-y-5">
       <Toaster position="top-center" richColors />
+      
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Peminjaman Buku</h1>
@@ -347,208 +363,235 @@ const PeminjamanPage: React.FC<PeminjamanPageProps> = ({ isAdmin = false }) => {
         </div>
       ) : (
         <div className="grid gap-4">
-          {displayHistory.map((borrow) => (
-            <div key={borrow.id} className="bg-white rounded-2xl p-5 border border-gray-100 hover:border-gray-200 hover:shadow-lg transition-all">
-              <div className="flex gap-5">
-                {/* Book Cover - Perfect Size */}
-                <div className="w-35 shrink-0">
-                  <div className="aspect-[2/3] overflow-hidden rounded-xl border-2 border-gray-100 bg-gray-50 shadow-md">
-                    <img
-                      src={borrow.book.cover_image || 'https://via.placeholder.com/200x300/3B82F6/FFFFFF?text=No+Cover'}
-                      alt={borrow.book.judul}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                </div>
+          {displayHistory.map((borrow) => {
+            const dendaFinal = calculateDenda(borrow); // ✅ CALCULATE DENDA
+            const hariTerlambat = borrow.hari_terlambat || 0;
 
-                {/* Book Info */}
-                <div className="flex-1 min-w-0 space-y-4">
-                  {/* Header */}
-                  <div>
-                    <h3 className="text-lg font-bold text-gray-900 mb-1">{borrow.book.judul}</h3>
-                    <p className="text-sm text-gray-500 mb-2">{borrow.book.pengarang}</p>
-                    {borrow.kode_peminjaman && (
-                      <span className="inline-block px-3 py-1 bg-purple-50 text-purple-700 text-xs rounded-lg font-semibold border border-purple-200">
-                        {borrow.kode_peminjaman}
-                      </span>
-                    )}
+            return (
+              <div key={borrow.id} className="bg-white rounded-2xl p-5 border border-gray-100 hover:border-gray-200 hover:shadow-lg transition-all">
+                <div className="flex gap-5">
+                  {/* Book Cover */}
+                  <div className="w-35 shrink-0">
+                    <div className="aspect-[2/3] overflow-hidden rounded-xl border-2 border-gray-100 bg-gray-50 shadow-md">
+                      <img
+                        src={borrow.book.cover_image || 'https://via.placeholder.com/200x300/3B82F6/FFFFFF?text=No+Cover'}
+                        alt={borrow.book.judul}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
                   </div>
 
-                  {/* Status Menunggu */}
-                  {tab === 'menunggu' && (
-                    <div className="space-y-3">
-                      <div className="bg-yellow-50 border border-yellow-200 p-3 rounded-xl flex items-start gap-3">
-                        <Hourglass className="w-5 h-5 text-yellow-600 shrink-0 mt-0.5" strokeWidth={2} />
-                        <div>
-                          <p className="font-bold text-yellow-800 text-sm">Menunggu Persetujuan</p>
-                          <p className="text-xs text-yellow-700 mt-0.5">Akan diproses dalam 1x24 jam</p>
-                        </div>
-                      </div>
-
-                      <div className="inline-flex items-center gap-2 text-xs text-gray-500">
-                        <span className="font-semibold">Diajukan:</span>
-                        <span>{formatDate(borrow.created_at)}</span>
-                      </div>
-
-                      {isAdmin && (
-                        <div className="flex gap-2 pt-1">
-                          <button 
-                            onClick={() => handleApprove(borrow.id)}
-                            className="flex-1 py-2.5 rounded-xl font-semibold text-sm hover:shadow-lg transition-all bg-gradient-to-r from-green-500 to-green-600 text-white flex items-center justify-center gap-2"
-                          >
-                            <CheckCircle className="w-4 h-4" strokeWidth={2} />
-                            Setujui
-                          </button>
-                          <button 
-                            onClick={() => setShowRejectModal(borrow.id)}
-                            className="flex-1 py-2.5 rounded-xl font-semibold text-sm hover:shadow-lg transition-all bg-gradient-to-r from-red-500 to-red-600 text-white flex items-center justify-center gap-2"
-                          >
-                            <XCircle className="w-4 h-4" strokeWidth={2} />
-                            Tolak
-                          </button>
-                        </div>
+                  {/* Book Info */}
+                  <div className="flex-1 min-w-0 space-y-4">
+                    {/* Header */}
+                    <div>
+                      <h3 className="text-lg font-bold text-gray-900 mb-1">{borrow.book.judul}</h3>
+                      <p className="text-sm text-gray-500 mb-2">{borrow.book.pengarang}</p>
+                      {borrow.kode_peminjaman && (
+                        <span className="inline-block px-3 py-1 bg-purple-50 text-purple-700 text-xs rounded-lg font-semibold border border-purple-200">
+                          {borrow.kode_peminjaman}
+                        </span>
                       )}
                     </div>
-                  )}
 
-                  {/* Status Aktif */}
-                  {tab === 'aktif' && (
-                    <div className="space-y-2.5">
-                      <div className="bg-blue-50 border border-blue-200 rounded-xl p-2.5 flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Clock className="w-4 h-4 text-blue-600" strokeWidth={2} />
-                          <span className="text-xs font-bold text-blue-800">Sedang Dipinjam</span>
-                        </div>
-                        <div className="flex items-center gap-3 text-xs">
+                    {/* Status Menunggu */}
+                    {tab === 'menunggu' && (
+                      <div className="space-y-3">
+                        <div className="bg-yellow-50 border border-yellow-200 p-3 rounded-xl flex items-start gap-3">
+                          <Hourglass className="w-5 h-5 text-yellow-600 shrink-0 mt-0.5" strokeWidth={2} />
                           <div>
-                            <span className="text-gray-500 font-medium">Deadline: </span>
-                            <span className="font-bold text-gray-900">{formatDate(borrow.tanggal_harus_kembali)}</span>
+                            <p className="font-bold text-yellow-800 text-sm">Menunggu Persetujuan</p>
+                            <p className="text-xs text-yellow-700 mt-0.5">Akan diproses dalam 1x24 jam</p>
                           </div>
                         </div>
+
+                        <div className="inline-flex items-center gap-2 text-xs text-gray-500">
+                          <span className="font-semibold">Diajukan:</span>
+                          <span>{formatDate(borrow.created_at)}</span>
+                        </div>
+
+                        {isAdmin && (
+                          <div className="flex gap-2 pt-1">
+                            <button 
+                              onClick={() => handleApprove(borrow.id)}
+                              className="flex-1 py-2.5 rounded-xl font-semibold text-sm hover:shadow-lg transition-all bg-gradient-to-r from-green-500 to-green-600 text-white flex items-center justify-center gap-2"
+                            >
+                              <CheckCircle className="w-4 h-4" strokeWidth={2} />
+                              Setujui
+                            </button>
+                            <button 
+                              onClick={() => setShowRejectModal(borrow.id)}
+                              className="flex-1 py-2.5 rounded-xl font-semibold text-sm hover:shadow-lg transition-all bg-gradient-to-r from-red-500 to-red-600 text-white flex items-center justify-center gap-2"
+                            >
+                              <XCircle className="w-4 h-4" strokeWidth={2} />
+                              Tolak
+                            </button>
+                          </div>
+                        )}
                       </div>
-                      
-                      {!isAdmin && (
-                        <div className="flex gap-2">
-                          <button 
-                            onClick={() => handleExtend(borrow.id)}
-                            className="flex-1 py-2 rounded-lg font-semibold text-xs hover:shadow-md transition-all bg-gradient-to-r from-blue-500 to-blue-600 text-white flex items-center justify-center gap-1.5"
-                          >
-                            <RefreshCw className="w-3.5 h-3.5" strokeWidth={2} />
-                            Perpanjang
-                          </button>
+                    )}
+
+                    {/* Status Aktif */}
+                    {tab === 'aktif' && (
+                      <div className="space-y-2.5">
+                        <div className="bg-blue-50 border border-blue-200 rounded-xl p-2.5 flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Clock className="w-4 h-4 text-blue-600" strokeWidth={2} />
+                            <span className="text-xs font-bold text-blue-800">Sedang Dipinjam</span>
+                          </div>
+                          <div className="flex items-center gap-3 text-xs">
+                            <div>
+                              <span className="text-gray-500 font-medium">Deadline: </span>
+                              <span className="font-bold text-gray-900">{formatDate(borrow.tanggal_harus_kembali)}</span>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {!isAdmin && (
+                          <div className="flex gap-2">
+                            <button 
+                              onClick={() => handleExtend(borrow.id)}
+                              className="flex-1 py-2 rounded-lg font-semibold text-xs hover:shadow-md transition-all bg-gradient-to-r from-blue-500 to-blue-600 text-white flex items-center justify-center gap-1.5"
+                            >
+                              <RefreshCw className="w-3.5 h-3.5" strokeWidth={2} />
+                              Perpanjang
+                            </button>
+                            <button 
+                              onClick={() => handleReturn(borrow.id)}
+                              className="flex-1 py-2 rounded-lg font-semibold text-xs hover:shadow-md transition-all bg-gradient-to-r from-green-500 to-green-600 text-white flex items-center justify-center gap-1.5"
+                            >
+                              <Package className="w-3.5 h-3.5" strokeWidth={2} />
+                              Kembalikan
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* ✅ FIXED: Status Terlambat */}
+                    {tab === 'terlambat' && (
+                      <div className="space-y-2.5">
+                        <div className="bg-red-50 border border-red-200 rounded-xl p-2.5">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <AlertTriangle className="w-4 h-4 text-red-600" strokeWidth={2} />
+                              <span className="text-xs font-bold text-red-800">Terlambat!</span>
+                            </div>
+                            <span className="text-xs text-red-700">Segera kembalikan</span>
+                          </div>
+                          <div className="flex items-center gap-3 text-xs">
+                            <div className="flex items-center gap-1">
+                              <span className="text-red-600 font-medium">Keterlambatan:</span>
+                              <span className="font-bold text-red-700">{hariTerlambat} hari</span>
+                            </div>
+                            <div className="w-px h-3 bg-red-300"></div>
+                            <div className="flex items-center gap-1">
+                              <span className="text-red-600 font-medium">Denda:</span>
+                              <span className="font-bold text-red-700">
+                                Rp {dendaFinal.toLocaleString('id-ID')}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {!isAdmin && (
                           <button 
                             onClick={() => handleReturn(borrow.id)}
-                            className="flex-1 py-2 rounded-lg font-semibold text-xs hover:shadow-md transition-all bg-gradient-to-r from-green-500 to-green-600 text-white flex items-center justify-center gap-1.5"
+                            className="w-full py-2 rounded-lg font-semibold text-xs hover:shadow-md transition-all bg-gradient-to-r from-red-500 to-red-600 text-white flex items-center justify-center gap-1.5"
                           >
                             <Package className="w-3.5 h-3.5" strokeWidth={2} />
-                            Kembalikan
+                            Kembalikan & Bayar Denda (Rp {dendaFinal.toLocaleString('id-ID')})
                           </button>
-                        </div>
-                      )}
-                    </div>
-                  )}
+                        )}
+                      </div>
+                    )}
 
-                  {/* Status Terlambat */}
-                  {tab === 'terlambat' && (
-                    <div className="space-y-2.5">
-                      <div className="bg-red-50 border border-red-200 rounded-xl p-2.5">
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-2">
-                            <AlertTriangle className="w-4 h-4 text-red-600" strokeWidth={2} />
-                            <span className="text-xs font-bold text-red-800">Terlambat!</span>
-                          </div>
-                          <span className="text-xs text-red-700">Segera kembalikan</span>
-                        </div>
-                        <div className="flex items-center gap-3 text-xs">
-                          <div className="flex items-center gap-1">
-                            <span className="text-red-600 font-medium">Keterlambatan:</span>
-                            <span className="font-bold text-red-700">{borrow.hari_terlambat || 0} hari</span>
-                          </div>
-                          <div className="w-px h-3 bg-red-300"></div>
-                          <div className="flex items-center gap-1">
-                            <span className="text-red-600 font-medium">Denda:</span>
-                            <span className="font-bold text-red-700">Rp {borrow.denda ? borrow.denda.toLocaleString('id-ID') : '0'}</span>
+                    {/* ✅ FIXED: Status Selesai */}
+                    {tab === 'selesai' && (
+                      <div className="space-y-3">
+                        <div className="bg-green-50 border border-green-200 p-3 rounded-xl flex items-start gap-3">
+                          <CheckCircle className="w-5 h-5 text-green-600 shrink-0 mt-0.5" strokeWidth={2} />
+                          <div>
+                            <p className="font-bold text-green-800 text-sm">Telah Dikembalikan</p>
+                            <p className="text-xs text-green-700 mt-0.5">
+                              {dendaFinal > 0 
+                                ? `Denda sebesar Rp ${dendaFinal.toLocaleString('id-ID')} telah dibayar`
+                                : 'Terima kasih telah mengembalikan tepat waktu'
+                              }
+                            </p>
                           </div>
                         </div>
-                      </div>
-                      
-                      {!isAdmin && (
-                        <button 
-                          onClick={() => handleReturn(borrow.id)}
-                          className="w-full py-2 rounded-lg font-semibold text-xs hover:shadow-md transition-all bg-gradient-to-r from-red-500 to-red-600 text-white flex items-center justify-center gap-1.5"
-                        >
-                          <Package className="w-3.5 h-3.5" strokeWidth={2} />
-                          Kembalikan & Bayar Denda
-                        </button>
-                      )}
-                    </div>
-                  )}
 
-                  {/* Status Selesai */}
-                  {tab === 'selesai' && (
-                    <div className="space-y-3">
-                      <div className="bg-green-50 border border-green-200 p-3 rounded-xl flex items-start gap-3">
-                        <CheckCircle className="w-5 h-5 text-green-600 shrink-0 mt-0.5" strokeWidth={2} />
-                        <div>
-                          <p className="font-bold text-green-800 text-sm">Telah Dikembalikan</p>
-                          <p className="text-xs text-green-700 mt-0.5">Terima kasih telah mengembalikan tepat waktu</p>
+                        <div className="grid grid-cols-3 gap-3">
+                          <div className="bg-gray-50 rounded-xl p-3 border border-gray-100">
+                            <p className="text-xs text-gray-400 font-semibold mb-1">Dipinjam</p>
+                            <p className="font-bold text-gray-900 text-sm">{formatDate(borrow.tanggal_pinjam)}</p>
+                          </div>
+                          <div className="bg-gray-50 rounded-xl p-3 border border-gray-100">
+                            <p className="text-xs text-gray-400 font-semibold mb-1">Dikembalikan</p>
+                            <p className="font-bold text-gray-900 text-sm">{formatDate(borrow.tanggal_dikembalikan)}</p>
+                          </div>
+                          <div className={`rounded-xl p-3 border ${
+                            dendaFinal > 0 
+                              ? 'bg-orange-50 border-orange-200' 
+                              : 'bg-green-50 border-green-200'
+                          }`}>
+                            <p className={`text-xs font-semibold mb-1 ${
+                              dendaFinal > 0 ? 'text-orange-600' : 'text-green-600'
+                            }`}>
+                              {dendaFinal > 0 ? 'Denda' : 'Status'}
+                            </p>
+                            <p className={`font-bold text-sm ${
+                              dendaFinal > 0 ? 'text-orange-700' : 'text-green-700'
+                            }`}>
+                              {dendaFinal > 0 
+                                ? `Rp ${dendaFinal.toLocaleString('id-ID')}`
+                                : 'Selesai'
+                              }
+                            </p>
+                          </div>
                         </div>
-                      </div>
 
-                      <div className="grid grid-cols-3 gap-3">
-                        <div className="bg-gray-50 rounded-xl p-3 border border-gray-100">
-                          <p className="text-xs text-gray-400 font-semibold mb-1">Dipinjam</p>
-                          <p className="font-bold text-gray-900 text-sm">{formatDate(borrow.tanggal_pinjam)}</p>
-                        </div>
-                        <div className="bg-gray-50 rounded-xl p-3 border border-gray-100">
-                          <p className="text-xs text-gray-400 font-semibold mb-1">Dikembalikan</p>
-                          <p className="font-bold text-gray-900 text-sm">{formatDate(borrow.tanggal_dikembalikan)}</p>
-                        </div>
-                        <div className="bg-green-50 rounded-xl p-3 border border-green-200">
-                          <p className="text-xs text-green-600 font-semibold mb-1">Status</p>
-                          <p className="font-bold text-green-700 text-sm">Selesai</p>
-                        </div>
+                        {dendaFinal > 0 && (
+                          <div className="bg-orange-50 border border-orange-200 rounded-xl p-3">
+                            <p className="text-xs text-orange-800">
+                              <span className="font-semibold">Terlambat {hariTerlambat} hari</span> × Rp 1.000 = Rp {dendaFinal.toLocaleString('id-ID')}
+                            </p>
+                          </div>
+                        )}
                       </div>
+                    )}
 
-                      {borrow.denda && borrow.denda > 0 && (
-                        <div className="bg-orange-50 border border-orange-200 rounded-xl p-3">
-                          <p className="text-xs text-orange-800">
-                            <span className="font-semibold">Denda dibayar:</span> Rp {borrow.denda.toLocaleString('id-ID')} ({borrow.hari_terlambat} hari terlambat)
-                          </p>
+                    {/* Status Ditolak */}
+                    {tab === 'ditolak' && (
+                      <div className="space-y-3">
+                        <div className="bg-gray-50 border border-gray-200 p-3 rounded-xl flex items-start gap-3">
+                          <XCircle className="w-5 h-5 text-gray-600 shrink-0 mt-0.5" strokeWidth={2} />
+                          <div className="flex-1 min-w-0">
+                            <p className="font-bold text-gray-800 text-sm mb-1">Permintaan Ditolak</p>
+                            <p className="text-xs text-gray-600">
+                              <span className="font-semibold">Alasan:</span> {borrow.alasan_tolak || 'Tidak ada alasan'}
+                            </p>
+                          </div>
                         </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Status Ditolak */}
-                  {tab === 'ditolak' && (
-                    <div className="space-y-3">
-                      <div className="bg-gray-50 border border-gray-200 p-3 rounded-xl flex items-start gap-3">
-                        <XCircle className="w-5 h-5 text-gray-600 shrink-0 mt-0.5" strokeWidth={2} />
-                        <div className="flex-1 min-w-0">
-                          <p className="font-bold text-gray-800 text-sm mb-1">Permintaan Ditolak</p>
-                          <p className="text-xs text-gray-600">
-                            <span className="font-semibold">Alasan:</span> {borrow.alasan_tolak || 'Tidak ada alasan'}
-                          </p>
-                        </div>
-                      </div>
-                      
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="bg-gray-50 rounded-xl p-3 border border-gray-100">
-                          <p className="text-xs text-gray-400 font-semibold mb-1">Diajukan</p>
-                          <p className="font-bold text-gray-900 text-sm">{formatDate(borrow.created_at)}</p>
-                        </div>
-                        <div className="bg-gray-50 rounded-xl p-3 border border-gray-100">
-                          <p className="text-xs text-gray-400 font-semibold mb-1">Ditolak</p>
-                          <p className="font-bold text-gray-900 text-sm">{formatDate(borrow.tanggal_persetujuan)}</p>
+                        
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="bg-gray-50 rounded-xl p-3 border border-gray-100">
+                            <p className="text-xs text-gray-400 font-semibold mb-1">Diajukan</p>
+                            <p className="font-bold text-gray-900 text-sm">{formatDate(borrow.created_at)}</p>
+                          </div>
+                          <div className="bg-gray-50 rounded-xl p-3 border border-gray-100">
+                            <p className="text-xs text-gray-400 font-semibold mb-1">Ditolak</p>
+                            <p className="font-bold text-gray-900 text-sm">{formatDate(borrow.tanggal_persetujuan)}</p>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 

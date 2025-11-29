@@ -42,20 +42,10 @@ function generateRandomString(length: number): string {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
   let result = '';
   
-  // Gunakan crypto untuk random yang lebih aman
-  const randomValues = new Uint8Array(length);
-  if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
-    crypto.getRandomValues(randomValues);
-    for (let i = 0; i < length; i++) {
-      result += chars[randomValues[i] % chars.length];
-    }
-  } else {
-    // Fallback ke Math.random untuk Node.js environment
-    const nodeCrypto = require('crypto');
-    const bytes = nodeCrypto.randomBytes(length);
-    for (let i = 0; i < length; i++) {
-      result += chars[bytes[i] % chars.length];
-    }
+  const nodeCrypto = require('crypto');
+  const bytes = nodeCrypto.randomBytes(length);
+  for (let i = 0; i < length; i++) {
+    result += chars[bytes[i] % chars.length];
   }
   
   return result;
@@ -65,45 +55,35 @@ function generateRandomString(length: number): string {
 // PEMINJAMAN FUNCTIONS
 // ============================================
 
-// Generate kode peminjaman unik dengan kombinasi timestamp + random string
+// Generate kode peminjaman unik
 export async function generateKodePeminjaman(): Promise<string> {
   const maxAttempts = 10;
   
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    // Format: PJM-YYYYMMDD-HHMMSS-XXXXX
-    // Contoh: PJM-20251122-143022-A8K3P
     const now = new Date();
-    const date = now.toISOString().split('T')[0].replace(/-/g, ''); // YYYYMMDD
-    const time = now.toTimeString().split(' ')[0].replace(/:/g, ''); // HHMMSS
-    
-    // Generate random alphanumeric string (5 karakter)
+    const date = now.toISOString().split('T')[0].replace(/-/g, '');
+    const time = now.toTimeString().split(' ')[0].replace(/:/g, '');
     const randomPart = generateRandomString(5);
-    
     const kodePeminjaman = `PJM-${date}-${time}-${randomPart}`;
     
-    // Cek apakah kode sudah ada di database
     const existing = await query<{ kode_peminjaman: string }>(
       `SELECT kode_peminjaman FROM peminjaman WHERE kode_peminjaman = ?`,
       [kodePeminjaman]
     );
     
-    // Jika tidak ada duplikat, return kode ini
     if (existing.length === 0) {
       return kodePeminjaman;
     }
     
-    // Jika ada duplikat (sangat jarang), tunggu sebentar dan coba lagi
     await new Promise(resolve => setTimeout(resolve, 10));
   }
   
-  // Fallback jika semua attempt gagal (hampir tidak mungkin terjadi)
-  // Gunakan timestamp presisi tinggi + UUID-like random
   const timestamp = Date.now().toString(36).toUpperCase();
   const random = generateRandomString(8);
   return `PJM-${timestamp}-${random}`;
 }
 
-// User request peminjaman (status: menunggu)
+// User request peminjaman
 export async function createPeminjamanRequest(
   userId: number,
   bookId: number,
@@ -113,7 +93,7 @@ export async function createPeminjamanRequest(
     // Cek apakah user sudah punya 3 peminjaman aktif/menunggu
     const activeLoans = await query<{ count: number }>(
       `SELECT COUNT(*) as count FROM peminjaman 
-       WHERE user_id = ? AND status IN ('dipinjam', 'menunggu')`,
+       WHERE user_id = ? AND status IN ('dipinjam', 'menunggu', 'terlambat')`,
       [userId]
     );
 
@@ -137,10 +117,8 @@ export async function createPeminjamanRequest(
       };
     }
 
-    // Generate kode peminjaman
     const kodePeminjaman = await generateKodePeminjaman();
 
-    // Insert peminjaman dengan status menunggu dan tanggal pengembalian yang dipilih
     const result = await execute(
       `INSERT INTO peminjaman (kode_peminjaman, user_id, book_id, tanggal_pengembalian_diinginkan, status, created_at)
        VALUES (?, ?, ?, ?, 'menunggu', NOW())`,
@@ -167,7 +145,6 @@ export async function approvePeminjaman(
   adminId: number
 ): Promise<{ success: boolean; message: string }> {
   try {
-    // Get peminjaman data
     const peminjaman = await query<{ 
       book_id: number; 
       status: string;
@@ -185,7 +162,6 @@ export async function approvePeminjaman(
       return { success: false, message: 'Peminjaman sudah diproses' };
     }
 
-    // Cek stok buku
     const book = await query<{ jumlah_tersedia: number }>(
       `SELECT jumlah_tersedia FROM books WHERE id = ?`,
       [peminjaman[0].book_id]
@@ -195,12 +171,10 @@ export async function approvePeminjaman(
       return { success: false, message: 'Stok buku tidak tersedia' };
     }
 
-    // Gunakan tanggal yang dipilih user, atau default +7 hari jika tidak ada
     let updateQuery: string;
     let updateParams: any[];
 
     if (peminjaman[0].tanggal_pengembalian_diinginkan) {
-      // Gunakan tanggal yang dipilih user
       updateQuery = `UPDATE peminjaman 
        SET status = 'dipinjam',
            tanggal_pinjam = CURDATE(),
@@ -210,7 +184,6 @@ export async function approvePeminjaman(
        WHERE id = ?`;
       updateParams = [peminjaman[0].tanggal_pengembalian_diinginkan, adminId, peminjamanId];
     } else {
-      // Default +7 hari dari tanggal peminjaman
       updateQuery = `UPDATE peminjaman 
        SET status = 'dipinjam',
            tanggal_pinjam = CURDATE(),
@@ -221,10 +194,8 @@ export async function approvePeminjaman(
       updateParams = [adminId, peminjamanId];
     }
 
-    // Update peminjaman status ke dipinjam
     await execute(updateQuery, updateParams);
 
-    // Kurangi stok buku
     await execute(
       `UPDATE books 
        SET jumlah_tersedia = jumlah_tersedia - 1 
@@ -252,7 +223,6 @@ export async function rejectPeminjaman(
   alasanTolak: string
 ): Promise<{ success: boolean; message: string }> {
   try {
-    // Get peminjaman data
     const peminjaman = await query<{ status: string }>(
       `SELECT status FROM peminjaman WHERE id = ?`,
       [peminjamanId]
@@ -266,7 +236,6 @@ export async function rejectPeminjaman(
       return { success: false, message: 'Peminjaman sudah diproses' };
     }
 
-    // Update peminjaman status ke ditolak
     await execute(
       `UPDATE peminjaman 
        SET status = 'ditolak',
@@ -296,7 +265,6 @@ export async function returnPeminjaman(
   userId: number
 ): Promise<{ success: boolean; message: string }> {
   try {
-    // Get peminjaman data
     const peminjaman = await query<{ 
       status: string; 
       user_id: number; 
@@ -313,17 +281,14 @@ export async function returnPeminjaman(
       return { success: false, message: 'Peminjaman tidak ditemukan' };
     }
 
-    // Pastikan ini peminjaman milik user yang bersangkutan
     if (peminjaman[0].user_id !== userId) {
       return { success: false, message: 'Anda tidak memiliki akses' };
     }
 
-    // Hanya bisa mengembalikan jika status dipinjam atau terlambat
     if (peminjaman[0].status !== 'dipinjam' && peminjaman[0].status !== 'terlambat') {
       return { success: false, message: 'Buku ini tidak dalam status peminjaman aktif' };
     }
 
-    // Hitung denda jika terlambat
     const today = new Date();
     const dueDate = new Date(peminjaman[0].tanggal_kembali);
     const isLate = today > dueDate;
@@ -333,10 +298,9 @@ export async function returnPeminjaman(
     
     if (isLate) {
       hariTerlambat = Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24));
-      denda = hariTerlambat * 1000; // Rp 1000 per hari
+      denda = hariTerlambat * 1000;
     }
 
-    // Update peminjaman status ke dikembalikan
     await execute(
       `UPDATE peminjaman 
        SET status = 'dikembalikan',
@@ -348,7 +312,6 @@ export async function returnPeminjaman(
       [hariTerlambat, denda, peminjamanId]
     );
 
-    // Tambah stok buku kembali
     await execute(
       `UPDATE books 
        SET jumlah_tersedia = jumlah_tersedia + 1 
@@ -371,7 +334,7 @@ export async function returnPeminjaman(
   }
 }
 
-// Get all peminjaman by user (untuk halaman user)
+// ✅ FIXED: Get all peminjaman by user dengan auto-detect terlambat + auto-calculate denda
 export async function getPeminjamanByUser(userId: number) {
   try {
     const results = await query<any>(
@@ -389,7 +352,23 @@ export async function getPeminjamanByUser(userId: number) {
         p.tanggal_persetujuan,
         p.created_at,
         p.updated_at,
-        DATEDIFF(CURDATE(), p.tanggal_kembali) AS hari_terlambat,
+        CASE 
+          WHEN p.status IN ('dipinjam', 'terlambat') AND p.tanggal_kembali < CURDATE() 
+          THEN DATEDIFF(CURDATE(), p.tanggal_kembali)
+          ELSE 0 
+        END AS hari_terlambat,
+        CASE 
+          WHEN p.status IN ('dipinjam', 'terlambat') AND p.tanggal_kembali < CURDATE() 
+          THEN DATEDIFF(CURDATE(), p.tanggal_kembali) * 1000
+          WHEN p.status = 'dikembalikan' AND p.denda IS NOT NULL
+          THEN p.denda
+          ELSE 0 
+        END AS denda_calculated,
+        CASE 
+          WHEN p.status = 'dipinjam' AND p.tanggal_kembali < CURDATE() 
+          THEN 'terlambat'
+          ELSE p.status 
+        END AS real_status,
         b.id AS book_id,
         b.kode_buku,
         b.judul,
@@ -406,19 +385,28 @@ export async function getPeminjamanByUser(userId: number) {
       FROM peminjaman p
       JOIN books b ON p.book_id = b.id
       WHERE p.user_id = ?
-      ORDER BY p.created_at DESC`,
+      ORDER BY 
+        CASE 
+          WHEN p.status = 'menunggu' THEN 1
+          WHEN (p.status = 'dipinjam' AND p.tanggal_kembali < CURDATE()) THEN 2
+          WHEN p.status = 'terlambat' THEN 2
+          WHEN p.status = 'dipinjam' THEN 3
+          WHEN p.status = 'dikembalikan' THEN 4
+          WHEN p.status = 'ditolak' THEN 5
+          ELSE 6
+        END,
+        p.created_at DESC`,
       [userId]
     );
 
-    // Transform data ke format BorrowHistory
     return results.map((row) => ({
       id: row.id,
       kode_peminjaman: row.kode_peminjaman,
       tanggal_pinjam: row.tanggal_pinjam,
       tanggal_harus_kembali: row.tanggal_kembali,
       tanggal_dikembalikan: row.tanggal_dikembalikan,
-      status: row.status,
-      denda: row.denda,
+      status: row.real_status,
+      denda: row.denda_calculated,
       catatan: row.catatan,
       alasan_tolak: row.alasan_tolak,
       disetujui_oleh: row.disetujui_oleh,
@@ -448,7 +436,7 @@ export async function getPeminjamanByUser(userId: number) {
   }
 }
 
-// Get all peminjaman menunggu (untuk admin)
+// Get peminjaman menunggu (untuk admin)
 export async function getPeminjamanMenunggu() {
   try {
     const results = await query<any>(
@@ -483,7 +471,6 @@ export async function getPeminjamanMenunggu() {
       ORDER BY p.created_at ASC`
     );
 
-    // Transform ke format BorrowHistory untuk konsistensi
     return results.map((row) => ({
       id: row.id,
       kode_peminjaman: row.kode_peminjaman,
@@ -520,6 +507,7 @@ export async function getPeminjamanMenunggu() {
   }
 }
 
+// ✅ FIXED: Get all peminjaman dengan auto-detect terlambat + auto-calculate denda
 export async function getAllPeminjaman() {
   try {
     const results = await query<any>(
@@ -543,6 +531,18 @@ export async function getAllPeminjaman() {
           THEN DATEDIFF(CURDATE(), p.tanggal_kembali)
           ELSE 0 
         END AS hari_terlambat,
+        CASE 
+          WHEN p.status IN ('dipinjam', 'terlambat') AND p.tanggal_kembali < CURDATE() 
+          THEN DATEDIFF(CURDATE(), p.tanggal_kembali) * 1000
+          WHEN p.status = 'dikembalikan' AND p.denda IS NOT NULL
+          THEN p.denda
+          ELSE 0 
+        END AS denda_calculated,
+        CASE 
+          WHEN p.status = 'dipinjam' AND p.tanggal_kembali < CURDATE() 
+          THEN 'terlambat'
+          ELSE p.status 
+        END AS real_status,
         u.id AS user_id,
         u.nipd,
         u.nama,
@@ -567,6 +567,7 @@ export async function getAllPeminjaman() {
       ORDER BY 
         CASE 
           WHEN p.status = 'menunggu' THEN 1
+          WHEN (p.status = 'dipinjam' AND p.tanggal_kembali < CURDATE()) THEN 2
           WHEN p.status = 'terlambat' THEN 2
           WHEN p.status = 'dipinjam' THEN 3
           WHEN p.status = 'dikembalikan' THEN 4
@@ -576,7 +577,6 @@ export async function getAllPeminjaman() {
         p.created_at DESC`
     );
 
-    // Format data sesuai interface BorrowData di frontend
     const formattedData = results.map((row) => ({
       id: row.id,
       kode_peminjaman: row.kode_peminjaman,
@@ -584,8 +584,8 @@ export async function getAllPeminjaman() {
       tanggal_harus_kembali: row.tanggal_kembali,
       tanggal_dikembalikan: row.tanggal_dikembalikan,
       tanggal_pengembalian_diinginkan: row.tanggal_pengembalian_diinginkan,
-      status: row.status,
-      denda: row.denda,
+      status: row.real_status,
+      denda: row.denda_calculated,
       catatan: row.catatan,
       alasan_tolak: row.alasan_tolak,
       disetujui_oleh: row.disetujui_oleh,
@@ -631,13 +631,12 @@ export async function getAllPeminjaman() {
   }
 }
 
-// Perpanjang peminjaman (untuk user)
+// Perpanjang peminjaman
 export async function extendPeminjaman(
   peminjamanId: number,
   userId: number
 ): Promise<{ success: boolean; message: string }> {
   try {
-    // Cek peminjaman
     const peminjaman = await query<{ status: string; user_id: number }>(
       `SELECT status, user_id FROM peminjaman WHERE id = ?`,
       [peminjamanId]
@@ -651,15 +650,15 @@ export async function extendPeminjaman(
       return { success: false, message: 'Anda tidak memiliki akses' };
     }
 
-    if (peminjaman[0].status !== 'dipinjam') {
+    if (peminjaman[0].status !== 'dipinjam' && peminjaman[0].status !== 'terlambat') {
       return { success: false, message: 'Hanya peminjaman aktif yang bisa diperpanjang' };
     }
 
-    // Perpanjang 7 hari
     await execute(
       `UPDATE peminjaman 
        SET tanggal_kembali = DATE_ADD(tanggal_kembali, INTERVAL 7 DAY),
-           catatan = CONCAT(IFNULL(catatan, ''), '\nDiperpanjang pada ', CURDATE())
+           catatan = CONCAT(IFNULL(catatan, ''), '\nDiperpanjang pada ', CURDATE()),
+           status = 'dipinjam'
        WHERE id = ?`,
       [peminjamanId]
     );
@@ -677,7 +676,7 @@ export async function extendPeminjaman(
   }
 }
 
-// Update status terlambat & hitung denda (cronjob/admin)
+// Update status terlambat (untuk cronjob atau manual trigger)
 export async function updateStatusTerlambat() {
   try {
     await execute(
