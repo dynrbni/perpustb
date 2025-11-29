@@ -28,7 +28,7 @@ interface BorrowData {
   user: UserType;
   tanggal_pinjam?: string | null;
   tanggal_harus_kembali?: string | null;
-  tanggal_pengembalian_diinginkan?: string | null; // ← TAMBAHAN INI
+  tanggal_pengembalian_diinginkan?: string | null;
   tanggal_dikembalikan?: string | null;
   status: 'menunggu' | 'dipinjam' | 'dikembalikan' | 'terlambat' | 'ditolak';
   catatan?: string;
@@ -50,7 +50,6 @@ const LoansPage = () => {
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [filterCategory, setFilterCategory] = useState<string>('all');
 
-  // Fetch all borrows
   const fetchBorrows = async () => {
     try {
       setLoading(true);
@@ -77,11 +76,9 @@ const LoansPage = () => {
     fetchBorrows();
   }, []);
 
-  // Filter borrows by tab
   useEffect(() => {
     let filtered = allBorrows;
 
-    // Filter by tab
     if (activeTab === 'approval') {
       filtered = filtered.filter(b => b.status === 'menunggu');
     } else if (activeTab === 'active') {
@@ -92,7 +89,6 @@ const LoansPage = () => {
       filtered = filtered.filter(b => b.status === 'dikembalikan' || b.status === 'ditolak');
     }
 
-    // Search filter
     if (searchQuery) {
       filtered = filtered.filter(borrow =>
         borrow.book.judul.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -102,7 +98,6 @@ const LoansPage = () => {
       );
     }
 
-    // Category filter
     if (filterCategory !== 'all') {
       filtered = filtered.filter(borrow => borrow.book.kategori === filterCategory);
     }
@@ -110,16 +105,14 @@ const LoansPage = () => {
     setFilteredBorrows(filtered);
   }, [activeTab, allBorrows, searchQuery, filterCategory]);
 
-  // Get unique categories
   const categories = ['all', ...Array.from(new Set(allBorrows.map(b => b.book.kategori).filter(Boolean)))];
 
-  // Format date
   const formatDate = (dateStr?: string | null) => {
     if (!dateStr) return '-';
     try {
       return new Date(dateStr).toLocaleDateString('id-ID', {
         day: 'numeric',
-        month: 'long',
+        month: 'short',
         year: 'numeric'
       });
     } catch {
@@ -127,7 +120,6 @@ const LoansPage = () => {
     }
   };
 
-  // Time ago
   const timeAgo = (dateStr: string) => {
     const now = new Date();
     const date = new Date(dateStr);
@@ -135,12 +127,11 @@ const LoansPage = () => {
     const hours = Math.floor(diff / (1000 * 60 * 60));
     const days = Math.floor(hours / 24);
 
-    if (days > 0) return `${days} hari yang lalu`;
-    if (hours > 0) return `${hours} jam yang lalu`;
+    if (days > 0) return `${days}h lalu`;
+    if (hours > 0) return `${hours}j lalu`;
     return 'Baru saja';
   };
 
-  // Handle approve
   const handleApprove = async (borrowId: number) => {
     if (!confirm('Setujui permintaan peminjaman ini?')) return;
     
@@ -164,7 +155,6 @@ const LoansPage = () => {
     }
   };
 
-  // Handle reject
   const handleRejectSubmit = async () => {
     if (!selectedBorrow) return;
     if (!rejectReason.trim()) {
@@ -199,7 +189,6 @@ const LoansPage = () => {
     }
   };
 
-  // Count by status
   const pendingCount = allBorrows.filter(b => b.status === 'menunggu').length;
   const activeCount = allBorrows.filter(b => b.status === 'dipinjam').length;
   const lateCount = allBorrows.filter(b => b.status === 'terlambat').length;
@@ -208,13 +197,13 @@ const LoansPage = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Header */}
       <div className="bg-white rounded-xl shadow-sm p-6">
         <div className="flex items-center gap-3">
@@ -228,82 +217,108 @@ const LoansPage = () => {
         </div>
       </div>
 
-      {/* Tabs - 4 TABS */}
-      <div className="bg-white rounded-2xl p-2 shadow-md border border-gray-100 grid grid-cols-4 gap-2">
-        <button
-          onClick={() => setActiveTab('approval')}
-          className={`py-3 px-4 rounded-xl font-bold transition-all duration-200 flex flex-col items-center justify-center gap-2 ${
-            activeTab === 'approval'
-              ? 'bg-gradient-to-r from-yellow-500 to-orange-500 text-white shadow-lg'
-              : 'text-gray-700 hover:bg-yellow-50'
-          }`}
-        >
-          <Clock className="w-5 h-5" />
-          <span className="text-sm">Approval</span>
-          <span className="text-xs opacity-80">({pendingCount})</span>
-        </button>
+      {/* Tabs */}
+      <div className="bg-white rounded-xl shadow-sm p-1.5 border border-gray-100">
+        <div className="grid grid-cols-4 gap-1.5">
+          <button
+            onClick={() => setActiveTab('approval')}
+            className={`py-2.5 px-3 rounded-lg font-semibold text-sm transition-all ${
+              activeTab === 'approval'
+                ? 'bg-amber-500 text-white shadow-sm'
+                : 'text-gray-600 hover:bg-gray-50'
+            }`}
+          >
+            <div className="flex items-center justify-center gap-2">
+              <Clock className="w-4 h-4" />
+              <span>Approval</span>
+              <span className={`text-xs px-1.5 py-0.5 rounded ${
+                activeTab === 'approval' ? 'bg-white/20' : 'bg-gray-100'
+              }`}>
+                {pendingCount}
+              </span>
+            </div>
+          </button>
 
-        <button
-          onClick={() => setActiveTab('active')}
-          className={`py-3 px-4 rounded-xl font-bold transition-all duration-200 flex flex-col items-center justify-center gap-2 ${
-            activeTab === 'active'
-              ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg'
-              : 'text-gray-700 hover:bg-blue-50'
-          }`}
-        >
-          <Book className="w-5 h-5" />
-          <span className="text-sm">Aktif</span>
-          <span className="text-xs opacity-80">({activeCount})</span>
-        </button>
+          <button
+            onClick={() => setActiveTab('active')}
+            className={`py-2.5 px-3 rounded-lg font-semibold text-sm transition-all ${
+              activeTab === 'active'
+                ? 'bg-blue-600 text-white shadow-sm'
+                : 'text-gray-600 hover:bg-gray-50'
+            }`}
+          >
+            <div className="flex items-center justify-center gap-2">
+              <Book className="w-4 h-4" />
+              <span>Aktif</span>
+              <span className={`text-xs px-1.5 py-0.5 rounded ${
+                activeTab === 'active' ? 'bg-white/20' : 'bg-gray-100'
+              }`}>
+                {activeCount}
+              </span>
+            </div>
+          </button>
 
-        <button
-          onClick={() => setActiveTab('late')}
-          className={`py-3 px-4 rounded-xl font-bold transition-all duration-200 flex flex-col items-center justify-center gap-2 ${
-            activeTab === 'late'
-              ? 'bg-gradient-to-r from-red-500 to-red-600 text-white shadow-lg'
-              : 'text-gray-700 hover:bg-red-50'
-          }`}
-        >
-          <AlertTriangle className="w-5 h-5" />
-          <span className="text-sm">Terlambat</span>
-          <span className="text-xs opacity-80">({lateCount})</span>
-        </button>
+          <button
+            onClick={() => setActiveTab('late')}
+            className={`py-2.5 px-3 rounded-lg font-semibold text-sm transition-all ${
+              activeTab === 'late'
+                ? 'bg-red-500 text-white shadow-sm'
+                : 'text-gray-600 hover:bg-gray-50'
+            }`}
+          >
+            <div className="flex items-center justify-center gap-2">
+              <AlertTriangle className="w-4 h-4" />
+              <span>Terlambat</span>
+              <span className={`text-xs px-1.5 py-0.5 rounded ${
+                activeTab === 'late' ? 'bg-white/20' : 'bg-gray-100'
+              }`}>
+                {lateCount}
+              </span>
+            </div>
+          </button>
 
-        <button
-          onClick={() => setActiveTab('history')}
-          className={`py-3 px-4 rounded-xl font-bold transition-all duration-200 flex flex-col items-center justify-center gap-2 ${
-            activeTab === 'history'
-              ? 'bg-gradient-to-r from-gray-600 to-gray-700 text-white shadow-lg'
-              : 'text-gray-700 hover:bg-gray-50'
-          }`}
-        >
-          <Calendar className="w-5 h-5" />
-          <span className="text-sm">Riwayat</span>
-          <span className="text-xs opacity-80">({historyCount})</span>
-        </button>
+          <button
+            onClick={() => setActiveTab('history')}
+            className={`py-2.5 px-3 rounded-lg font-semibold text-sm transition-all ${
+              activeTab === 'history'
+                ? 'bg-gray-700 text-white shadow-sm'
+                : 'text-gray-600 hover:bg-gray-50'
+            }`}
+          >
+            <div className="flex items-center justify-center gap-2">
+              <Calendar className="w-4 h-4" />
+              <span>Riwayat</span>
+              <span className={`text-xs px-1.5 py-0.5 rounded ${
+                activeTab === 'history' ? 'bg-white/20' : 'bg-gray-100'
+              }`}>
+                {historyCount}
+              </span>
+            </div>
+          </button>
+        </div>
       </div>
 
       {/* Search & Filter */}
       {(activeTab === 'approval' || activeTab === 'active' || activeTab === 'late') && (
-        <div className="bg-white rounded-2xl p-4 shadow-md border border-gray-100">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="bg-white rounded-xl shadow-sm p-3 border border-gray-100">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div className="relative">
-              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
               <input
                 type="text"
-                placeholder="Cari siswa, buku, NIPD, atau kode buku..."
+                placeholder="Cari siswa, buku, NIPD..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full pl-10 pr-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
 
             <div className="relative">
-              <Filter className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+              <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
               <select
                 value={filterCategory}
                 onChange={(e) => setFilterCategory(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none cursor-pointer"
+                className="w-full pl-10 pr-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none cursor-pointer"
               >
                 <option value="all">Semua Kategori</option>
                 {categories.filter(c => c !== 'all').map(cat => (
@@ -317,105 +332,104 @@ const LoansPage = () => {
 
       {/* Content */}
       {filteredBorrows.length === 0 ? (
-        <div className="bg-white rounded-2xl p-12 shadow-md border border-gray-100 text-center">
-          <Clock className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-xl font-bold text-gray-800 mb-2">
+        <div className="bg-white rounded-xl shadow-sm p-8 border border-gray-100 text-center">
+          <Clock className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+          <h3 className="text-lg font-bold text-gray-800 mb-1">
             {activeTab === 'approval' && 'Tidak ada permintaan menunggu'}
             {activeTab === 'active' && 'Tidak ada peminjaman aktif'}
             {activeTab === 'late' && 'Tidak ada peminjaman terlambat'}
             {activeTab === 'history' && 'Tidak ada riwayat'}
           </h3>
-          <p className="text-gray-500">
-            {activeTab === 'approval' && 'Semua permintaan peminjaman telah diproses'}
+          <p className="text-sm text-gray-500">
+            {activeTab === 'approval' && 'Semua permintaan telah diproses'}
             {activeTab === 'active' && 'Tidak ada buku yang sedang dipinjam'}
-            {activeTab === 'late' && 'Tidak ada buku yang terlambat dikembalikan'}
-            {activeTab === 'history' && 'Belum ada riwayat peminjaman'}
+            {activeTab === 'late' && 'Tidak ada buku terlambat'}
+            {activeTab === 'history' && 'Belum ada riwayat'}
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-4">
+        <div className="space-y-3">
           {filteredBorrows.map((borrow) => (
             <div
               key={borrow.id}
-              className={`rounded-2xl p-6 shadow-md border-2 hover:shadow-xl transition-all duration-300 ${
-                borrow.status === 'menunggu' ? 'bg-gradient-to-br from-yellow-50 to-white border-yellow-200' :
-                borrow.status === 'terlambat' ? 'bg-gradient-to-br from-red-50 to-white border-red-200' :
-                borrow.status === 'dipinjam' ? 'bg-gradient-to-br from-blue-50 to-white border-blue-200' :
-                'bg-gradient-to-br from-gray-50 to-white border-gray-200'
-              }`}
+              className="bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow p-4"
             >
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                {/* Book Cover */}
-                <div className="lg:col-span-2">
+              <div className="flex gap-4">
+                {/* Left: Book Cover */}
+                <div className="flex-shrink-0">
                   <img
-                    src={borrow.book.cover_image || 'https://via.placeholder.com/150x200/3B82F6/FFFFFF?text=No+Cover'}
+                    src={borrow.book.cover_image || 'https://via.placeholder.com/80x110/3B82F6/FFFFFF?text=No+Cover'}
                     alt={borrow.book.judul}
-                    className="w-full h-auto object-cover rounded-lg shadow-md"
+                    className="w-20 h-28 object-cover rounded-lg shadow-sm"
                   />
                 </div>
 
-                {/* Book & User Info */}
-                <div className="lg:col-span-7 space-y-4">
-                  {/* Book Info */}
+                {/* Middle: Info */}
+                <div className="flex-1 min-w-0 space-y-3">
+                  {/* Book Title & Author */}
                   <div>
-                    <div className="flex items-start gap-2 mb-2">
-                      <Book className="w-5 h-5 text-blue-600 shrink-0 mt-1" />
-                      <div>
-                        <h3 className="text-xl font-bold text-gray-800">{borrow.book.judul}</h3>
-                        <p className="text-gray-600">{borrow.book.pengarang}</p>
-                        <div className="flex flex-wrap gap-2 mt-2">
-                          <span className="px-3 py-1 bg-blue-100 text-blue-700 text-xs rounded-full font-medium">
-                            {borrow.book.kode_buku}
-                          </span>
-                          {borrow.book.kategori && (
-                            <span className="px-3 py-1 bg-purple-100 text-purple-700 text-xs rounded-full font-medium">
-                              {borrow.book.kategori}
-                            </span>
-                          )}
-                        </div>
-                      </div>
+                    <h3 className="font-bold text-gray-900 text-base mb-0.5 line-clamp-1">{borrow.book.judul}</h3>
+                    <p className="text-sm text-gray-600 mb-2">{borrow.book.pengarang}</p>
+                    
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded font-medium">
+                        {borrow.book.kode_buku}
+                      </span>
+                      {borrow.book.kategori && (
+                        <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs rounded font-medium">
+                          {borrow.book.kategori}
+                        </span>
+                      )}
+                      <span className={`px-2 py-0.5 rounded text-xs font-semibold ${
+                        borrow.status === 'menunggu' ? 'bg-amber-100 text-amber-700' :
+                        borrow.status === 'terlambat' ? 'bg-red-100 text-red-700' :
+                        borrow.status === 'dipinjam' ? 'bg-blue-100 text-blue-700' :
+                        borrow.status === 'dikembalikan' ? 'bg-green-100 text-green-700' :
+                        'bg-gray-100 text-gray-700'
+                      }`}>
+                        {borrow.status === 'menunggu' && 'Menunggu'}
+                        {borrow.status === 'dipinjam' && 'Dipinjam'}
+                        {borrow.status === 'terlambat' && 'Terlambat'}
+                        {borrow.status === 'dikembalikan' && 'Dikembalikan'}
+                        {borrow.status === 'ditolak' && 'Ditolak'}
+                      </span>
                     </div>
                   </div>
 
-                  {/* User Info */}
-                  <div className="bg-white rounded-lg p-4 border border-gray-200">
-                    <div className="flex items-center gap-3">
-                      <User className="w-5 h-5 text-green-600" />
-                      <div className="flex-1">
-                        <p className="text-sm text-gray-500 font-semibold">Peminjam</p>
-                        <div className="flex items-center gap-3 mt-1">
-                          {borrow.user.profile_picture ? (
-                            <img
-                              src={borrow.user.profile_picture}
-                              alt={borrow.user.nama}
-                              className="w-10 h-10 rounded-full object-cover shadow-md"
-                            />
-                          ) : (
-                            <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-700 rounded-full flex items-center justify-center text-white font-bold shadow-md">
-                              {borrow.user.nama.charAt(0).toUpperCase()}
-                            </div>
-                          )}
-                          <div>
-                            <p className="font-bold text-gray-800">{borrow.user.nama}</p>
-                            <p className="text-sm text-gray-500">NIPD: {borrow.user.nipd}</p>
-                          </div>
-                        </div>
+                  {/* User Info with Profile Picture */}
+                  <div className="flex items-center gap-2 bg-gray-50 rounded-lg p-2">
+                    {borrow.user.profile_picture ? (
+                      <img
+                        src={borrow.user.profile_picture}
+                        alt={borrow.user.nama}
+                        className="w-8 h-8 rounded-full object-cover border-2 border-white shadow-sm"
+                      />
+                    ) : (
+                      <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-sm">
+                        {borrow.user.nama.charAt(0).toUpperCase()}
                       </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-gray-800 text-sm truncate">{borrow.user.nama}</p>
+                      <p className="text-xs text-gray-600">NIPD: {borrow.user.nipd}</p>
+                    </div>
+                    <div className="text-xs text-gray-500 text-right">
+                      <span className="font-semibold">Kode:</span> {borrow.kode_peminjaman || '-'}
                     </div>
                   </div>
 
-                  {/* Request Details */}
-                  <div className="grid grid-cols-2 gap-3">
+                  {/* Date Info Grid */}
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
                     {activeTab === 'approval' && (
                       <>
-                        <div className="bg-white rounded-lg p-3 border border-gray-200">
-                          <p className="text-xs text-gray-500 font-semibold mb-1">DIAJUKAN</p>
-                          <p className="text-sm font-bold text-gray-800">{formatDate(borrow.created_at)}</p>
-                          <p className="text-xs text-gray-500 mt-1">{timeAgo(borrow.created_at)}</p>
+                        <div className="bg-gray-50 rounded-lg p-2">
+                          <p className="text-xs text-gray-500 mb-0.5">Diajukan</p>
+                          <p className="text-xs font-semibold text-gray-800">{formatDate(borrow.created_at)}</p>
+                          <p className="text-xs text-gray-500">{timeAgo(borrow.created_at)}</p>
                         </div>
-                        <div className="bg-white rounded-lg p-3 border border-gray-200">
-                          <p className="text-xs text-gray-500 font-semibold mb-1">DIKEMBALIKAN PADA</p>
-                          <p className="text-sm font-bold text-gray-800">
+                        <div className="bg-gray-50 rounded-lg p-2">
+                          <p className="text-xs text-gray-500 mb-0.5">Target Kembali</p>
+                          <p className="text-xs font-semibold text-gray-800">
                             {formatDate(borrow.tanggal_pengembalian_diinginkan)}
                           </p>
                         </div>
@@ -424,23 +438,23 @@ const LoansPage = () => {
 
                     {(activeTab === 'active' || activeTab === 'late') && (
                       <>
-                        <div className="bg-white rounded-lg p-3 border border-gray-200">
-                          <p className="text-xs text-gray-500 font-semibold mb-1">DIPINJAM</p>
-                          <p className="text-sm font-bold text-gray-800">{formatDate(borrow.tanggal_pinjam)}</p>
+                        <div className="bg-gray-50 rounded-lg p-2">
+                          <p className="text-xs text-gray-500 mb-0.5">Dipinjam</p>
+                          <p className="text-xs font-semibold text-gray-800">{formatDate(borrow.tanggal_pinjam)}</p>
                         </div>
-                        <div className="bg-white rounded-lg p-3 border border-gray-200">
-                          <p className="text-xs text-gray-500 font-semibold mb-1">HARUS KEMBALI</p>
-                          <p className="text-sm font-bold text-gray-800">{formatDate(borrow.tanggal_harus_kembali)}</p>
+                        <div className="bg-gray-50 rounded-lg p-2">
+                          <p className="text-xs text-gray-500 mb-0.5">Batas Kembali</p>
+                          <p className="text-xs font-semibold text-gray-800">{formatDate(borrow.tanggal_harus_kembali)}</p>
                         </div>
                         {activeTab === 'late' && (
                           <>
-                            <div className="bg-white rounded-lg p-3 border border-red-200">
-                              <p className="text-xs text-red-600 font-semibold mb-1">HARI TERLAMBAT</p>
-                              <p className="text-sm font-bold text-red-600">{borrow.hari_terlambat || 0} hari</p>
+                            <div className="bg-red-50 rounded-lg p-2">
+                              <p className="text-xs text-red-600 mb-0.5">Terlambat</p>
+                              <p className="text-xs font-semibold text-red-700">{borrow.hari_terlambat || 0} hari</p>
                             </div>
-                            <div className="bg-white rounded-lg p-3 border border-red-200">
-                              <p className="text-xs text-red-600 font-semibold mb-1">DENDA</p>
-                              <p className="text-sm font-bold text-red-600">Rp {borrow.denda?.toLocaleString('id-ID') || '0'}</p>
+                            <div className="bg-red-50 rounded-lg p-2">
+                              <p className="text-xs text-red-600 mb-0.5">Denda</p>
+                              <p className="text-xs font-semibold text-red-700">Rp {borrow.denda?.toLocaleString('id-ID') || '0'}</p>
                             </div>
                           </>
                         )}
@@ -449,15 +463,15 @@ const LoansPage = () => {
 
                     {activeTab === 'history' && (
                       <>
-                        <div className="bg-white rounded-lg p-3 border border-gray-200">
-                          <p className="text-xs text-gray-500 font-semibold mb-1">DIPINJAM</p>
-                          <p className="text-sm font-bold text-gray-800">{formatDate(borrow.tanggal_pinjam)}</p>
+                        <div className="bg-gray-50 rounded-lg p-2">
+                          <p className="text-xs text-gray-500 mb-0.5">Dipinjam</p>
+                          <p className="text-xs font-semibold text-gray-800">{formatDate(borrow.tanggal_pinjam)}</p>
                         </div>
-                        <div className="bg-white rounded-lg p-3 border border-gray-200">
-                          <p className="text-xs text-gray-500 font-semibold mb-1">
-                            {borrow.status === 'dikembalikan' ? 'DIKEMBALIKAN' : 'DITOLAK'}
+                        <div className="bg-gray-50 rounded-lg p-2">
+                          <p className="text-xs text-gray-500 mb-0.5">
+                            {borrow.status === 'dikembalikan' ? 'Dikembalikan' : 'Ditolak'}
                           </p>
-                          <p className="text-sm font-bold text-gray-800">
+                          <p className="text-xs font-semibold text-gray-800">
                             {formatDate(borrow.status === 'dikembalikan' ? borrow.tanggal_dikembalikan : borrow.updated_at)}
                           </p>
                         </div>
@@ -465,77 +479,49 @@ const LoansPage = () => {
                     )}
                   </div>
 
-                  {/* Catatan / Alasan Tolak */}
+                  {/* Notes */}
                   {borrow.catatan && activeTab === 'approval' && (
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                      <p className="text-xs text-blue-600 font-semibold mb-1">CATATAN PEMINJAM</p>
-                      <p className="text-sm text-blue-800">{borrow.catatan}</p>
+                    <div className="bg-blue-50 border-l-2 border-blue-500 rounded p-2">
+                      <p className="text-xs text-blue-800"><span className="font-semibold">Catatan:</span> {borrow.catatan}</p>
                     </div>
                   )}
 
                   {borrow.alasan_tolak && activeTab === 'history' && borrow.status === 'ditolak' && (
-                    <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                      <p className="text-xs text-red-600 font-semibold mb-1">ALASAN PENOLAKAN</p>
-                      <p className="text-sm text-red-800">{borrow.alasan_tolak}</p>
+                    <div className="bg-red-50 border-l-2 border-red-500 rounded p-2">
+                      <p className="text-xs text-red-800"><span className="font-semibold">Alasan:</span> {borrow.alasan_tolak}</p>
                     </div>
                   )}
 
                   {activeTab === 'late' && (
-                    <div className="bg-red-100 border-l-4 border-red-500 p-4 rounded">
-                      <div className="flex items-start gap-3">
-                        <AlertTriangle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
-                        <p className="text-sm text-red-700">Buku terlambat dikembalikan. Denda sedang berjalan Rp 1.000/hari.</p>
+                    <div className="bg-red-50 border-l-2 border-red-500 rounded p-2">
+                      <div className="flex items-center gap-2">
+                        <AlertTriangle className="w-3.5 h-3.5 text-red-600" />
+                        <p className="text-xs text-red-800">Denda berjalan Rp 1.000/hari</p>
                       </div>
                     </div>
                   )}
                 </div>
 
-                {/* Action Buttons */}
+                {/* Right: Actions */}
                 {activeTab === 'approval' && (
-                  <div className="lg:col-span-3 flex flex-col gap-3">
+                  <div className="flex-shrink-0 flex flex-col gap-2 w-24">
                     <button
                       onClick={() => handleApprove(borrow.id)}
-                      className="flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-bold text-white bg-gradient-to-r from-green-600 to-emerald-600 hover:shadow-lg transition-all duration-200"
+                      className="flex items-center justify-center gap-1 py-2 px-3 rounded-lg text-xs font-semibold text-white bg-green-600 hover:bg-green-700 transition-colors"
                     >
-                      <CheckCircle className="w-5 h-5" />
+                      <CheckCircle className="w-3.5 h-3.5" />
                       Setujui
                     </button>
-
                     <button
                       onClick={() => {
                         setSelectedBorrow(borrow);
                         setShowRejectModal(true);
                       }}
-                      className="flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-bold text-white bg-gradient-to-r from-red-500 to-red-600 hover:shadow-lg transition-all duration-200"
+                      className="flex items-center justify-center gap-1 py-2 px-3 rounded-lg text-xs font-semibold text-white bg-red-500 hover:bg-red-600 transition-colors"
                     >
-                      <XCircle className="w-5 h-5" />
+                      <XCircle className="w-3.5 h-3.5" />
                       Tolak
                     </button>
-
-                    <div className="bg-yellow-100 rounded-lg p-3 text-center border border-yellow-300">
-                      <p className="text-xs text-yellow-700 font-semibold mb-1">KODE</p>
-                      <p className="text-sm font-bold text-yellow-800">{borrow.kode_peminjaman || '-'}</p>
-                    </div>
-                  </div>
-                )}
-
-                {activeTab !== 'approval' && (
-                  <div className="lg:col-span-3 flex flex-col gap-3">
-                    <div className="bg-gray-100 rounded-lg p-3 text-center border border-gray-300">
-                      <p className="text-xs text-gray-700 font-semibold mb-1">KODE</p>
-                      <p className="text-sm font-bold text-gray-800">{borrow.kode_peminjaman || '-'}</p>
-                    </div>
-                    <div className={`rounded-lg p-3 text-center font-bold ${
-                      borrow.status === 'dipinjam' ? 'bg-blue-100 text-blue-800' :
-                      borrow.status === 'terlambat' ? 'bg-red-100 text-red-800' :
-                      borrow.status === 'dikembalikan' ? 'bg-green-100 text-green-800' :
-                      'bg-gray-100 text-gray-800'
-                    }`}>
-                      {borrow.status === 'dipinjam' && 'Sedang Dipinjam'}
-                      {borrow.status === 'terlambat' && 'Terlambat'}
-                      {borrow.status === 'dikembalikan' && 'Dikembalikan'}
-                      {borrow.status === 'ditolak' && 'Ditolak'}
-                    </div>
                   </div>
                 )}
               </div>
@@ -546,20 +532,20 @@ const LoansPage = () => {
 
       {/* Reject Modal */}
       {showRejectModal && selectedBorrow && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl p-6 max-w-md w-full shadow-xl">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
-                <XCircle className="w-6 h-6 text-red-600" />
+              <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
+                <XCircle className="w-5 h-5 text-red-600" />
               </div>
               <div>
-                <h3 className="text-xl font-bold text-gray-800">Tolak Peminjaman</h3>
+                <h3 className="text-lg font-bold text-gray-800">Tolak Peminjaman</h3>
                 <p className="text-sm text-gray-500">{selectedBorrow.user.nama}</p>
               </div>
             </div>
 
             <div className="mb-4 p-3 bg-gray-50 rounded-lg">
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-gray-700">
                 <span className="font-semibold">Buku:</span> {selectedBorrow.book.judul}
               </p>
             </div>
@@ -567,9 +553,9 @@ const LoansPage = () => {
             <textarea
               value={rejectReason}
               onChange={(e) => setRejectReason(e.target.value)}
-              placeholder="Masukkan alasan penolakan (wajib)..."
-              className="w-full p-3 border border-gray-300 rounded-lg mb-4 focus:outline-none focus:ring-2 text-gray-700 focus:ring-red-500 min-h-[100px]"
-              rows={4}
+              placeholder="Masukkan alasan penolakan..."
+              className="w-full p-3 border border-gray-200 rounded-lg mb-4 focus:outline-none focus:ring-2 focus:ring-red-500 text-sm text-gray-700 min-h-[80px]"
+              rows={3}
             />
 
             <div className="flex gap-3">
@@ -579,20 +565,20 @@ const LoansPage = () => {
                   setSelectedBorrow(null);
                   setRejectReason('');
                 }}
-                className="flex-1 py-3 rounded-lg border-2 border-gray-300 font-bold text-gray-700 hover:bg-gray-50 transition-all"
+                className="flex-1 py-2 rounded-lg border border-gray-300 font-semibold text-sm text-gray-700 hover:bg-gray-50 transition-colors"
               >
                 Batal
               </button>
               <button
                 onClick={handleRejectSubmit}
                 disabled={!rejectReason.trim()}
-                className={`flex-1 py-3 rounded-lg font-bold text-white transition-all ${
+                className={`flex-1 py-2 rounded-lg font-semibold text-sm text-white transition-colors ${
                   rejectReason.trim()
-                    ? 'bg-gradient-to-r from-red-500 to-red-600 hover:shadow-lg'
+                    ? 'bg-red-500 hover:bg-red-600'
                     : 'bg-gray-300 cursor-not-allowed'
                 }`}
               >
-                Tolak Peminjaman
+                Tolak
               </button>
             </div>
           </div>

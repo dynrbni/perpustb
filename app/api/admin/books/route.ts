@@ -7,13 +7,24 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const limit = searchParams.get('limit') || '10';
     const kategori = searchParams.get('kategori');
+    const includeInactive = searchParams.get('includeInactive') === 'true';
 
     let sql = 'SELECT * FROM books';
     let params: any[] = [];
+    const conditions: string[] = [];
+
+    // Filter hanya buku aktif kecuali diminta sebaliknya
+    if (!includeInactive) {
+      conditions.push('status = "active"');
+    }
 
     if (kategori) {
-      sql += ' WHERE kategori = ?';
+      conditions.push('kategori = ?');
       params.push(kategori);
+    }
+
+    if (conditions.length > 0) {
+      sql += ' WHERE ' + conditions.join(' AND ');
     }
 
     sql += ' ORDER BY created_at DESC LIMIT ?';
@@ -31,12 +42,34 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
+
+    // Validasi field wajib
+    if (!body.kode_buku || !body.judul || !body.pengarang) {
+      return NextResponse.json(
+        { error: 'Kode buku, judul, dan pengarang wajib diisi' },
+        { status: 400 }
+      );
+    }
+
+    // Cek apakah kode_buku sudah ada
+    const existing = await query(
+      'SELECT id FROM books WHERE kode_buku = ?',
+      [body.kode_buku]
+    );
+
+    if (existing.length > 0) {
+      return NextResponse.json(
+        { error: 'Kode buku sudah digunakan' },
+        { status: 400 }
+      );
+    }
+
     const result = await execute(
       `INSERT INTO books (
         kode_buku, judul, pengarang, penerbit, tahun_terbit, 
         isbn, kategori, jumlah_total, jumlah_tersedia, lokasi_rak, 
-        deskripsi, cover_image
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        deskripsi, cover_image, status
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         body.kode_buku,
         body.judul,
@@ -45,14 +78,19 @@ export async function POST(request: Request) {
         body.tahun_terbit || null,
         body.isbn || null,
         body.kategori || null,
-        body.jumlah_total,
-        body.jumlah_tersedia,
+        body.jumlah_total || 1,
+        body.jumlah_tersedia || 1,
         body.lokasi_rak || null,
         body.deskripsi || null,
-        body.cover_image || null  // TAMBAHKAN INI untuk menyimpan cover_image
+        body.cover_image || null,
+        'active' // Default status
       ]
     );
-    return NextResponse.json({ message: 'Book created successfully', id: result.insertId });
+
+    return NextResponse.json({
+      message: 'Book created successfully',
+      id: result.insertId
+    }, { status: 201 });
   } catch (error) {
     console.error('Error creating book:', error);
     return NextResponse.json({ error: 'Failed to create book' }, { status: 500 });
@@ -63,6 +101,23 @@ export async function POST(request: Request) {
 export async function PUT(request: Request) {
   try {
     const body = await request.json();
+
+    if (!body.id) {
+      return NextResponse.json(
+        { error: 'Book ID is required' },
+        { status: 400 }
+      );
+    }
+
+    // Cek apakah buku exist
+    const existing = await query('SELECT id FROM books WHERE id = ?', [body.id]);
+    if (existing.length === 0) {
+      return NextResponse.json(
+        { error: 'Book not found' },
+        { status: 404 }
+      );
+    }
+
     await query(
       `UPDATE books SET 
         judul = ?, 
@@ -75,7 +130,8 @@ export async function PUT(request: Request) {
         jumlah_tersedia = ?, 
         lokasi_rak = ?, 
         deskripsi = ?,
-        cover_image = ?
+        cover_image = ?,
+        status = ?
       WHERE id = ?`,
       [
         body.judul,
@@ -88,10 +144,12 @@ export async function PUT(request: Request) {
         body.jumlah_tersedia,
         body.lokasi_rak,
         body.deskripsi,
-        body.cover_image || null,  // TAMBAHKAN INI untuk update cover_image
+        body.cover_image || null,
+        body.status || 'active',
         body.id
       ]
     );
+
     return NextResponse.json({ message: 'Book updated successfully' });
   } catch (error) {
     console.error('Error updating book:', error);
@@ -99,13 +157,53 @@ export async function PUT(request: Request) {
   }
 }
 
-// DELETE - Delete book
+// DELETE - Soft delete book (nonaktifkan buku)
 export async function DELETE(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
-    await query('DELETE FROM books WHERE id = ?', [id]);
-    return NextResponse.json({ message: 'Book deleted successfully' });
+    const permanent = searchParams.get('permanent') === 'true';
+
+    if (!id) {
+      return NextResponse.json(
+        { error: 'Book ID is required' },
+        { status: 400 }
+      );
+    }
+
+    // Cek apakah buku exist
+    const existing = await query('SELECT id FROM books WHERE id = ?', [id]);
+    if (existing.length === 0) {
+      return NextResponse.json(
+        { error: 'Book not found' },
+        { status: 404 }
+      );
+    }
+
+    if (permanent) {
+      // Permanent delete - cek dulu apakah ada peminjaman
+      const peminjaman = await query(
+        'SELECT COUNT(*) as count FROM peminjaman WHERE book_id = ?',
+        [id]
+      );
+
+      if (peminjaman[0].count > 0) {
+        return NextResponse.json(
+          {
+            error: 'Tidak dapat menghapus buku ini karena masih memiliki riwayat peminjaman. Gunakan soft delete (nonaktifkan) sebagai gantinya.'
+          },
+          { status: 400 }
+        );
+      }
+
+      // Hapus permanen
+      await query('DELETE FROM books WHERE id = ?', [id]);
+      return NextResponse.json({ message: 'Book permanently deleted successfully' });
+    } else {
+      // Soft delete - ubah status jadi inactive
+      await query('UPDATE books SET status = ? WHERE id = ?', ['inactive', id]);
+      return NextResponse.json({ message: 'Book deactivated successfully' });
+    }
   } catch (error) {
     console.error('Error deleting book:', error);
     return NextResponse.json({ error: 'Failed to delete book' }, { status: 500 });
