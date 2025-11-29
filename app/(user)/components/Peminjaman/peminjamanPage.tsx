@@ -450,13 +450,6 @@ const PeminjamanPage: React.FC<PeminjamanPageProps> = ({ isAdmin = false }) => {
                         {!isAdmin && (
                           <div className="flex gap-2">
                             <button 
-                              onClick={() => handleExtend(borrow.id)}
-                              className="flex-1 py-2 rounded-lg font-semibold text-xs hover:shadow-md transition-all bg-gradient-to-r from-blue-500 to-blue-600 text-white flex items-center justify-center gap-1.5"
-                            >
-                              <RefreshCw className="w-3.5 h-3.5" strokeWidth={2} />
-                              Perpanjang
-                            </button>
-                            <button 
                               onClick={() => handleReturn(borrow.id)}
                               className="flex-1 py-2 rounded-lg font-semibold text-xs hover:shadow-md transition-all bg-gradient-to-r from-green-500 to-green-600 text-white flex items-center justify-center gap-1.5"
                             >

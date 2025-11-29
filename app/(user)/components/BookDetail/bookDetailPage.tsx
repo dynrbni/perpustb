@@ -169,7 +169,7 @@ const BookDetailPage: React.FC<BookDetailPageProps> = ({
             <button
               onClick={handleBorrow}
               disabled={book.jumlah_tersedia === 0 || isLoading}
-              className={`flex-1 py-3 px-5 rounded-xl font-bold transition-all duration-200 text-sm ${
+              className={`flex-1 py-3 px-5 rounded-xl font-bold transition-all text-sm ${
                 book.jumlah_tersedia > 0 && !isLoading
                   ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:from-blue-600 hover:to-blue-700 shadow-lg shadow-blue-500/30 hover:shadow-xl hover:scale-105'
                   : 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200'

@@ -79,7 +79,7 @@ const KatalogPage: React.FC<KatalogPageProps> = ({
               className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all duration-200 ${
                 selectedCategory === cat
                   ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/30 scale-105'
-                  : 'bg-gray-50 text-gray-600 hover:bg-blue-50 hover:text-blue-600 border border-gray-100'
+                  : 'bg-gray-50 text-gray-600 hover:bg-blue-50 hover:text-blue-600 border border-gray-100 cursor-pointer'
               }`}
             >
               {cat === 'all' ? 'Semua' : cat}
@@ -124,7 +124,7 @@ const KatalogPage: React.FC<KatalogPageProps> = ({
                 <button
                   onClick={(e) => handleToggleWishlist(book.id, e)}
                   disabled={wishlistLoading === book.id}
-                  className={`absolute top-2 right-2 w-8 h-8 backdrop-blur-sm rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-all duration-200 z-10 ${
+                  className={`absolute top-2 right-2 w-8 h-8 backdrop-blur-sm rounded-full flex items-center justify-center shadow-lg cursor-pointer hover:scale-110 transition-all duration-200 z-10 ${
                     wishlistLoading === book.id
                       ? 'bg-gray-300 cursor-wait'
                       : 'bg-white/90'

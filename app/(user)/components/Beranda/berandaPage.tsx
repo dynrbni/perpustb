@@ -34,7 +34,7 @@ const BerandaPage: React.FC<BerandaPageProps> = ({ user, books, borrowHistory, w
       {/* Stats Cards - Compact */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Card 1 */}
-        <div className="group relative bg-white rounded-2xl p-4 border border-gray-100 hover:border-blue-300 hover:shadow-2xl hover:shadow-blue-100/50 hover:-translate-y-2 transition-all duration-300 cursor-pointer">
+        <div className="group relative bg-white rounded-2xl p-4 border border-gray-100 hover:border-blue-300 hover:shadow-2xl hover:shadow-blue-100/50 hover:-translate-y-2 transition-all duration-300">
           <div className="absolute inset-0 bg-gradient-to-br from-blue-50 via-blue-50/50 to-transparent opacity-0 group-hover:opacity-100 rounded-2xl transition-opacity duration-300"></div>
           <div className="relative">
             <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center mb-2.5 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-lg shadow-blue-500/20">
@@ -50,7 +50,7 @@ const BerandaPage: React.FC<BerandaPageProps> = ({ user, books, borrowHistory, w
         </div>
 
         {/* Card 2 */}
-        <div className="group relative bg-white rounded-2xl p-4 border border-gray-100 hover:border-red-300 hover:shadow-2xl hover:shadow-red-100/50 hover:-translate-y-2 transition-all duration-300 cursor-pointer">
+        <div className="group relative bg-white rounded-2xl p-4 border border-gray-100 hover:border-red-300 hover:shadow-2xl hover:shadow-red-100/50 hover:-translate-y-2 transition-all duration-300">
           <div className="absolute inset-0 bg-gradient-to-br from-red-50 via-red-50/50 to-transparent opacity-0 group-hover:opacity-100 rounded-2xl transition-opacity duration-300"></div>
           <div className="relative">
             <div className="w-10 h-10 bg-gradient-to-br from-red-500 to-rose-600 rounded-lg flex items-center justify-center mb-2.5 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-lg shadow-red-500/20">
@@ -66,7 +66,7 @@ const BerandaPage: React.FC<BerandaPageProps> = ({ user, books, borrowHistory, w
         </div>
 
         {/* Card 3 */}
-        <div className="group relative bg-white rounded-2xl p-4 border border-gray-100 hover:border-pink-300 hover:shadow-2xl hover:shadow-pink-100/50 hover:-translate-y-2 transition-all duration-300 cursor-pointer">
+        <div className="group relative bg-white rounded-2xl p-4 border border-gray-100 hover:border-pink-300 hover:shadow-2xl hover:shadow-pink-100/50 hover:-translate-y-2 transition-all duration-300">
           <div className="absolute inset-0 bg-gradient-to-br from-pink-50 via-pink-50/50 to-transparent opacity-0 group-hover:opacity-100 rounded-2xl transition-opacity duration-300"></div>
           <div className="relative">
             <div className="w-10 h-10 bg-gradient-to-br from-pink-500 to-rose-500 rounded-lg flex items-center justify-center mb-2.5 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-lg shadow-pink-500/20">
@@ -82,7 +82,7 @@ const BerandaPage: React.FC<BerandaPageProps> = ({ user, books, borrowHistory, w
         </div>
 
         {/* Card 4 */}
-        <div className="group relative bg-white rounded-2xl p-4 border border-gray-100 hover:border-green-300 hover:shadow-2xl hover:shadow-green-100/50 hover:-translate-y-2 transition-all duration-300 cursor-pointer">
+        <div className="group relative bg-white rounded-2xl p-4 border border-gray-100 hover:border-green-300 hover:shadow-2xl hover:shadow-green-100/50 hover:-translate-y-2 transition-all duration-300">
           <div className="absolute inset-0 bg-gradient-to-br from-green-50 via-green-50/50 to-transparent opacity-0 group-hover:opacity-100 rounded-2xl transition-opacity duration-300"></div>
           <div className="relative">
             <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg flex items-center justify-center mb-2.5 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-lg shadow-green-500/20">

@@ -76,9 +76,3 @@ export async function getUserFromRequest(request: Request): Promise<number | nul
     return null;
   }
 }
-
-// ⚠️ DEPRECATED - Jangan pakai ini lagi!
-export async function getUserFromToken(): Promise<number | null> {
-  console.warn("⚠️ getUserFromToken() is deprecated! Use getUserFromRequest(request) instead!");
-  return null;
-}

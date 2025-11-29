@@ -198,7 +198,7 @@ export default function ProfilPage() {
                 </span>
                 <button
                   onClick={() => setIsEditing(true)}
-                  className="w-full mt-4 sm:mt-6 py-2 sm:py-2.5 bg-blue-600 text-white text-sm rounded-lg font-semibold hover:bg-blue-700 transition-all"
+                  className="w-full mt-4 sm:mt-6 py-2 sm:py-2.5 bg-blue-600 text-white text-sm rounded-lg font-semibold hover:bg-blue-700 transition-all cursor-pointer"
                 >
                   Edit Profil
                 </button>
@@ -233,7 +233,7 @@ export default function ProfilPage() {
 
           {/* Stats Cards Grid */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-            <div className="group relative bg-white rounded-xl sm:rounded-2xl p-3 sm:p-4 border border-gray-100 hover:border-blue-300 hover:shadow-2xl hover:shadow-blue-100/50 hover:-translate-y-2 transition-all duration-300 cursor-pointer">
+            <div className="group relative bg-white rounded-xl sm:rounded-2xl p-3 sm:p-4 border border-gray-100 hover:border-blue-300 hover:shadow-2xl hover:shadow-blue-100/50 hover:-translate-y-2 transition-all duration-300">
               <div className="absolute inset-0 bg-gradient-to-br from-blue-50 via-blue-50/50 to-transparent opacity-0 group-hover:opacity-100 rounded-xl sm:rounded-2xl transition-opacity duration-300"></div>
               <div className="relative">
                 <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center mb-2 sm:mb-2.5 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-lg shadow-blue-500/20">
@@ -248,7 +248,7 @@ export default function ProfilPage() {
               </div>
             </div>
 
-            <div className="group relative bg-white rounded-xl sm:rounded-2xl p-3 sm:p-4 border border-gray-100 hover:border-red-300 hover:shadow-2xl hover:shadow-red-100/50 hover:-translate-y-2 transition-all duration-300 cursor-pointer">
+            <div className="group relative bg-white rounded-xl sm:rounded-2xl p-3 sm:p-4 border border-gray-100 hover:border-red-300 hover:shadow-2xl hover:shadow-red-100/50 hover:-translate-y-2 transition-all duration-300">
               <div className="absolute inset-0 bg-gradient-to-br from-red-50 via-red-50/50 to-transparent opacity-0 group-hover:opacity-100 rounded-xl sm:rounded-2xl transition-opacity duration-300"></div>
               <div className="relative">
                 <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-red-500 to-rose-600 rounded-lg flex items-center justify-center mb-2 sm:mb-2.5 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-lg shadow-red-500/20">
@@ -263,7 +263,7 @@ export default function ProfilPage() {
               </div>
             </div>
 
-            <div className="group relative bg-white rounded-xl sm:rounded-2xl p-3 sm:p-4 border border-gray-100 hover:border-green-300 hover:shadow-2xl hover:shadow-green-100/50 hover:-translate-y-2 transition-all duration-300 cursor-pointer">
+            <div className="group relative bg-white rounded-xl sm:rounded-2xl p-3 sm:p-4 border border-gray-100 hover:border-green-300 hover:shadow-2xl hover:shadow-green-100/50 hover:-translate-y-2 transition-all duration-300">
               <div className="absolute inset-0 bg-gradient-to-br from-green-50 via-green-50/50 to-transparent opacity-0 group-hover:opacity-100 rounded-xl sm:rounded-2xl transition-opacity duration-300"></div>
               <div className="relative">
                 <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg flex items-center justify-center mb-2 sm:mb-2.5 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-lg shadow-green-500/20">
@@ -278,7 +278,7 @@ export default function ProfilPage() {
               </div>
             </div>
 
-            <div className="group relative bg-white rounded-xl sm:rounded-2xl p-3 sm:p-4 border border-gray-100 hover:border-purple-300 hover:shadow-2xl hover:shadow-purple-100/50 hover:-translate-y-2 transition-all duration-300 cursor-pointer">
+            <div className="group relative bg-white rounded-xl sm:rounded-2xl p-3 sm:p-4 border border-gray-100 hover:border-purple-300 hover:shadow-2xl hover:shadow-purple-100/50 hover:-translate-y-2 transition-all duration-300">
               <div className="absolute inset-0 bg-gradient-to-br from-purple-50 via-purple-50/50 to-transparent opacity-0 group-hover:opacity-100 rounded-xl sm:rounded-2xl transition-opacity duration-300"></div>
               <div className="relative">
                 <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-lg flex items-center justify-center mb-2 sm:mb-2.5 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-lg shadow-purple-500/20">
@@ -301,7 +301,7 @@ export default function ProfilPage() {
             {/* Back Button */}
             <button
               onClick={handleCancel}
-              className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4 sm:mb-6 transition-colors"
+              className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4 sm:mb-6 transition-colors cursor-pointer"
             >
               <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
               <span className="text-sm sm:text-base font-medium">Kembali</span>
@@ -391,7 +391,7 @@ export default function ProfilPage() {
                 <button
                   onClick={handleSaveProfile}
                   disabled={isLoading}
-                  className="flex-1 py-2.5 sm:py-3 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  className="flex-1 py-2.5 sm:py-3 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
                 >
                   {isLoading ? (
                     <>
@@ -408,7 +408,7 @@ export default function ProfilPage() {
                 <button
                   onClick={handleCancel}
                   disabled={isLoading}
-                  className="flex-1 py-2.5 sm:py-3 bg-gray-100 text-gray-700 text-sm font-semibold rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  className="flex-1 py-2.5 sm:py-3 bg-gray-100 text-gray-700 text-sm font-semibold rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <X className="w-4 h-4" />
                   <span>Batal</span>
